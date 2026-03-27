@@ -112,7 +112,8 @@ const options: swaggerJsdoc.Options = {
                         type: { type: 'string', enum: ['mobil', 'motor'], example: 'mobil' },
                         brand: { type: 'string', example: 'Toyota' },
                         model: { type: 'string', example: 'Avanza' },
-                        year: { type: 'integer', example: 2020 }
+                        year: { type: 'integer', example: 2020 },
+                        frame_number: { type: 'string', example: 'MH1234567890', description: 'Nomor Rangka (VIN) kendaraan (opsional)' }
                     }
                 },
                 // ────────────── Category ──────────────
@@ -193,7 +194,8 @@ const options: swaggerJsdoc.Options = {
                                     spare_part_id: { type: 'integer', example: 42, description: 'Wajib jika item_type = spare_part' },
                                     item_name: { type: 'string', example: 'Oli Mesin 1L' },
                                     quantity: { type: 'integer', example: 1 },
-                                    unit_price: { type: 'number', example: 65000 }
+                                    unit_price: { type: 'number', example: 65000 },
+                                    bundle_id: { type: 'integer', example: 1, description: 'ID Paket Service (opsional)' }
                                 }
                             }
                         }
@@ -224,7 +226,9 @@ const options: swaggerJsdoc.Options = {
                         estimasi_biaya: { type: 'number', example: 350000 },
                         estimasi_selesai: { type: 'string', example: '2026-03-07' },
                         menginap: { type: 'boolean', example: false },
-                        mekanik: { type: 'string', example: 'Budi' }
+                        mekanik: { type: 'string', example: 'Budi' },
+                        complaint_log: { type: 'string', example: 'Oli rembes, rem belakang kurang pakem', description: 'Catatan keluhan detail dari pelanggan' },
+                        service_bundle_id: { type: 'integer', example: 1, description: 'ID Paket Service yang dipilih. Jika diisi, checklist item akan otomatis dibuat.' }
                     }
                 },
                 WorkOrderStatusRequest: {
@@ -288,6 +292,29 @@ const options: swaggerJsdoc.Options = {
                         },
                         garansi: { type: 'string', example: '1 bulan / 1.000 km', description: 'Garansi layanan (opsional)' }
                     }
+                },
+                // ────────────── Service Bundle ──────────────
+                ServiceBundleRequest: {
+                    type: 'object',
+                    required: ['name', 'price'],
+                    properties: {
+                        name: { type: 'string', example: 'Paket Lengkap' },
+                        description: { type: 'string', example: 'Servis menyeluruh untuk performa maksimal' },
+                        price: { type: 'number', example: 250000 },
+                        is_active: { type: 'boolean', example: true },
+                        tasks: {
+                            type: 'array',
+                            items: { type: 'string', example: 'Setel Karburator' },
+                            description: 'Daftar itemized job / checklist yang akan muncul di SPK'
+                        }
+                    }
+                },
+                WorkOrderChecklistRequest: {
+                    type: 'object',
+                    required: ['is_done'],
+                    properties: {
+                        is_done: { type: 'boolean', example: true }
+                    }
                 }
             }
         },
@@ -304,6 +331,7 @@ const options: swaggerJsdoc.Options = {
             { name: 'Work Orders', description: 'Work Order / antrian servis kendaraan' },
             { name: 'Service Catalog', description: 'Katalog jasa / layanan bengkel' },
             { name: 'Transactions', description: 'Transaksi / nota servis' },
+            { name: 'Service Bundles', description: 'Master paket layanan & checklist' },
             { name: 'Reports', description: 'Laporan omset & stok' },
             { name: 'Notifications', description: 'Notifikasi WhatsApp & manajemen koneksi WA Web.js' },
             { name: 'Settings', description: 'Pengaturan profil bengkel' }
@@ -795,6 +823,25 @@ const options: swaggerJsdoc.Options = {
                     }
                 }
             },
+            '/work-orders/{id}/checklist/{checklistId}': {
+                patch: {
+                    tags: ['Work Orders'],
+                    summary: 'Update status checklist item (is_done)',
+                    description: 'Digunakan oleh mekanik untuk menandai pekerjaan tertentu dalam paket service sudah selesai.',
+                    parameters: [
+                        { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+                        { name: 'checklistId', in: 'path', required: true, schema: { type: 'integer' } }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: { 'application/json': { schema: { $ref: '#/components/schemas/WorkOrderChecklistRequest' } } }
+                    },
+                    responses: {
+                        200: { description: 'Status checklist diupdate' },
+                        404: { description: 'Work Order / Checklist Item tidak ditemukan' }
+                    }
+                }
+            },
             // ══════════════════ TRANSACTIONS ══════════════════
             '/transactions': {
                 get: {
@@ -1101,6 +1148,47 @@ const options: swaggerJsdoc.Options = {
                         },
                         404: { description: 'Layanan tidak ditemukan', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
+                }
+            },
+            // ══════════════════ SERVICE BUNDLES ══════════════════
+            '/service-bundles': {
+                get: {
+                    tags: ['Service Bundles'],
+                    summary: 'List semua paket layanan',
+                    responses: { 200: { description: 'Daftar paket layanan' } }
+                },
+                post: {
+                    tags: ['Service Bundles'],
+                    summary: 'Buat paket layanan baru beserta items checklist nya',
+                    requestBody: {
+                        required: true,
+                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ServiceBundleRequest' } } }
+                    },
+                    responses: { 201: { description: 'Paket berhasil dibuat' } }
+                }
+            },
+            '/service-bundles/{id}': {
+                get: {
+                    tags: ['Service Bundles'],
+                    summary: 'Detail paket layanan dan item nya',
+                    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                    responses: { 200: { description: 'Detail paket' }, 404: { description: 'Paket tidak ditemukan' } }
+                },
+                put: {
+                    tags: ['Service Bundles'],
+                    summary: 'Update paket layanan (termasuk replace tasks)',
+                    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                    requestBody: {
+                        required: true,
+                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ServiceBundleRequest' } } }
+                    },
+                    responses: { 200: { description: 'Paket diupdate' } }
+                },
+                delete: {
+                    tags: ['Service Bundles'],
+                    summary: 'Hapus paket layanan',
+                    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+                    responses: { 200: { description: 'Paket dihapus' } }
                 }
             },
             // ══════════════════ SETTINGS ══════════════════

@@ -543,7 +543,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"plate_number\": \"D 1234 {{$randomInt}}\",\n  \"type\": \"mobil\",\n  \"brand\": \"Toyota\",\n  \"model\": \"Avanza\",\n  \"year\": 2020\n}"
+                            "raw": "{\n  \"plate_number\": \"D 1234 {{$randomInt}}\",\n  \"type\": \"mobil\",\n  \"brand\": \"Toyota\",\n  \"model\": \"Avanza\",\n  \"year\": 2020,\n  \"frame_number\": \"MH1{{$randomInt}}99\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/vehicles",
@@ -1304,7 +1304,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"vehicle_id\": {{vehicle_id}},\n  \"layanan\": \"Service Rutin 10.000 km\",\n  \"keluhan\": \"Rem berdecit saat ngerem mendadak\",\n  \"estimasi_biaya\": 350000,\n  \"estimasi_selesai\": \"2 jam\",\n  \"menginap\": false\n}"
+                            "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"vehicle_id\": {{vehicle_id}},\n  \"layanan\": \"Service Rutin 10.000 km\",\n  \"keluhan\": \"Rem berdecit saat ngerem mendadak\",\n  \"complaint_log\": \"Oli rembes, rem belakang kurang pakem\",\n  \"service_bundle_id\": 1,\n  \"estimasi_biaya\": 350000,\n  \"estimasi_selesai\": \"2 jam\",\n  \"menginap\": false\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/work-orders",
@@ -1451,6 +1451,34 @@
                                 "work-orders",
                                 "{{work_order_id}}",
                                 "mechanic"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Checklist Item",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_done\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/work-orders/{{work_order_id}}/checklist/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "work-orders",
+                                "{{work_order_id}}",
+                                "checklist",
+                                "1"
                             ]
                         }
                     }
@@ -1615,6 +1643,80 @@
             ]
         },
         {
+            "name": "Service Bundles",
+            "description": "Master paket layanan & checklist",
+            "item": [
+                {
+                    "name": "List Service Bundles",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data?.length > 0) pm.environment.set('bundle_id', res.data[0].id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/service-bundles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "service-bundles"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Service Bundle",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Paket Service Baru\",\n  \"description\": \"Deskripsi paket\",\n  \"price\": 300000,\n  \"tasks\": [\n    \"Cek Busi\",\n    \"Bersihkan Throttle Body\",\n    \"Cek Filter Udara\"\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/service-bundles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "service-bundles"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Bundle Detail",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}/service-bundles/{{bundle_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "service-bundles",
+                                "{{bundle_id}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "Transactions",
             "description": "Transaksi / nota servis",
             "item": [
@@ -1687,7 +1789,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"vehicle_id\": {{vehicle_id}},\n  \"transaction_date\": \"2026-03-06\",\n  \"payment_method\": \"cash\",\n  \"notes\": \"Ganti oli + tune up\",\n  \"items\": [\n    {\n      \"item_type\": \"spare_part\",\n      \"spare_part_id\": {{spare_part_id}},\n      \"item_name\": \"Oli Mesin 10W-40 1L\",\n      \"quantity\": 2,\n      \"unit_price\": 65000\n    },\n    {\n      \"item_type\": \"jasa\",\n      \"item_name\": \"Jasa Tune Up\",\n      \"quantity\": 1,\n      \"unit_price\": 85000\n    }\n  ]\n}"
+                            "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"vehicle_id\": {{vehicle_id}},\n  \"transaction_date\": \"2026-03-06\",\n  \"payment_method\": \"cash\",\n  \"notes\": \"Ganti oli + tune up\",\n  \"items\": [\n    {\n      \"item_type\": \"spare_part\",\n      \"spare_part_id\": {{spare_part_id}},\n      \"item_name\": \"Oli Mesin 10W-40 1L\",\n      \"quantity\": 2,\n      \"unit_price\": 65000\n    },\n    {\n      \"item_type\": \"jasa\",\n      \"item_name\": \"Paket Lengkap\",\n      \"bundle_id\": 1,\n      \"quantity\": 1,\n      \"unit_price\": 250000\n    }\n  ]\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/transactions",
