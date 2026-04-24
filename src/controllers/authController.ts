@@ -173,3 +173,31 @@ export const refresh = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const updateMe = async (req: Request, res: Response) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Token missing' } });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, config.jwtSecret || 'supersecretkey') as any;
+
+        const { phone, password } = req.body;
+        const updateData: any = {};
+        
+        if (phone !== undefined) updateData.phone = phone || null;
+        if (password) updateData.password_hash = bcrypt.hashSync(password, 10);
+
+        const updatedUser = await prisma.users.update({
+            where: { id: decoded.id },
+            data: updateData,
+            select: { id: true, name: true, username: true, role: true, phone: true }
+        });
+
+        return res.status(200).json({ success: true, data: { user: updatedUser }, message: 'Profile updated successfully' });
+    } catch (err: any) {
+        return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: err.message } });
+    }
+};
