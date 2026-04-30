@@ -83,7 +83,7 @@ export const updateCustomer = async (req: Request, res: Response) => {
     });
     return successResponse(res, data, "Customer berhasil diupdate");
   } catch (e: any) {
-    return errorResponse(res, "NOT_FOUND", "Customer tidak ditemukan", 404);
+    return errorResponse(res, "SERVER_ERROR", e.message, 500);
   }
 };
 

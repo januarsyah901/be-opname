@@ -24,7 +24,10 @@ import serviceCatalogRoutes from "./routes/serviceCatalogRoutes";
 import reminderRoutes from "./routes/reminderRoutes";
 import serviceBundleRoutes from "./routes/serviceBundleRoutes";
 
+import purchaseOrderRoutes from "./routes/purchaseOrderRoutes";
+
 const app = express();
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -107,6 +110,7 @@ app.use("/api/v1/vehicle-masters", vehicleMasterRoutes);
 app.use("/api/v1/service-catalog", serviceCatalogRoutes);
 app.use("/api/v1/reminders", reminderRoutes);
 app.use("/api/v1/service-bundles", serviceBundleRoutes);
+app.use("/api/v1/inventory/purchase-orders", purchaseOrderRoutes);
 app.get("/api/docs.json", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "application/json");
   res.send(swaggerSpec);

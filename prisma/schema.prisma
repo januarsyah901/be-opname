@@ -214,6 +214,9 @@ model work_orders {
   menginap         Boolean   @default(false)
   complaint_log    String?   @db.Text
   service_bundle_id Int?
+  image_url_1      String?   @db.Text
+  image_url_2      String?   @db.Text
+  image_url_3      String?   @db.Text
   waktu_masuk      DateTime  @default(now()) @db.Timestamptz(6)
   created_at       DateTime  @default(now()) @db.Timestamptz(6)
   deleted_at       DateTime? @db.Timestamptz(6)
@@ -221,6 +224,7 @@ model work_orders {
   customers        customers? @relation(fields: [customer_id], references: [id])
   service_bundles  service_bundles? @relation(fields: [service_bundle_id], references: [id])
   checklists       work_order_checklists[]
+  inspection       work_order_inspections?
 }
 
 model service_bundles {
@@ -250,6 +254,32 @@ model work_order_checklists {
   is_done       Boolean      @default(false)
   updated_at    DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
   work_orders   work_orders  @relation(fields: [work_order_id], references: [id], onDelete: Cascade)
+}
+
+model work_order_inspections {
+  id                   Int                           @id @default(autoincrement())
+  work_order_id        Int                           @unique
+  inspection_date      DateTime                      @default(now()) @db.Timestamptz(6)
+  kilometer            String?                       @db.VarChar(50)
+  pengerjaan           String?                       @db.VarChar(255)
+  service_request_note String?                       @db.Text
+  repair_note          String?                       @db.Text
+  inspected_by         String?                       @db.VarChar(100)
+  created_at           DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime                      @default(now()) @updatedAt @db.Timestamptz(6)
+  work_orders          work_orders                   @relation(fields: [work_order_id], references: [id], onDelete: Cascade)
+  items                work_order_inspection_items[]
+}
+
+model work_order_inspection_items {
+  id            Int                    @id @default(autoincrement())
+  inspection_id Int
+  section       String                 @db.VarChar(100)
+  item_name     String                 @db.VarChar(255)
+  status        String                 @default("unchecked") @db.VarChar(20)
+  note          String?                @db.Text
+  sort_order    Int                    @default(0)
+  inspections   work_order_inspections @relation(fields: [inspection_id], references: [id], onDelete: Cascade)
 }
 
 model wa_notifications {
@@ -297,4 +327,28 @@ model reminders {
 
   customers        customers @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   vehicles         vehicles  @relation(fields: [vehicle_id], references: [id], onDelete: Cascade)
+}
+model purchase_orders {
+  id            Int                    @id @default(autoincrement())
+  no_po         String                 @unique @db.VarChar(50)
+  tanggal       DateTime               @db.Timestamptz(6)
+  supplier      String                 @db.VarChar(200)
+  status        String                 @default("Draft") @db.VarChar(20)
+  total_nilai   Decimal                @default(0) @db.Decimal(15, 2)
+  estimasi_tiba DateTime?              @db.Timestamptz(6)
+  catatan       String?                @db.Text
+  created_at    DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+  items         purchase_order_items[]
+}
+
+model purchase_order_items {
+  id             Int             @id @default(autoincrement())
+  purchase_id    Int
+  spare_part_id  Int?
+  sku            String?         @db.VarChar(50)
+  nama           String          @db.VarChar(200)
+  qty            Int
+  harga_satuan   Decimal         @db.Decimal(15, 2)
+  purchase_order purchase_orders @relation(fields: [purchase_id], references: [id], onDelete: Cascade)
 }

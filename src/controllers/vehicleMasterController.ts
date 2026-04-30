@@ -21,13 +21,16 @@ export const createVehicleMaster = async (req: Request, res: Response) => {
       return errorResponse(res, "VALIDATION_ERROR", "Brand and model are required", 400);
     }
 
+    const normalizedBrand = brand.trim().toUpperCase();
+    const normalizedModel = model.trim().toUpperCase();
+
     // Upsert to handle potential duplicates gracefully
     const data = await (prisma as any).vehicle_masters.upsert({
       where: { 
-        brand_model: { brand, model } 
+        brand_model: { brand: normalizedBrand, model: normalizedModel } 
       },
       update: {},
-      create: { brand, model },
+      create: { brand: normalizedBrand, model: normalizedModel },
     });
 
     return successResponse(res, data, "Data master kendaraan berhasil disimpan", 201);

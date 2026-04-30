@@ -4,6 +4,69 @@ import { successResponse, errorResponse } from '../utils/response';
 import { getPagination } from '../utils/helpers';
 import { sendServiceProgressNotification } from '../services/waClientService';
 
+const INSPECTION_TEMPLATE = [
+    {
+        section: 'PENGECEKAN AREA MESIN',
+        items: [
+            'Kondisi Oli Mesin',
+            'Filter Udara',
+            'Kondisi Belt',
+            'Rembesan/Kebocoran Oli/Air',
+            'Kesehatan Aki',
+            'Voltase Pengisian',
+            'Kondisi Saat Starter',
+            'Engine Mounting (Mesin, Tengah, Transmisi)',
+            'Coolant/Air Radiator',
+            'Tutup Radiator',
+            'Oli Power Stering',
+            'Getaran & Suara Mesin',
+            'Kondisi Minyak Rem/Kopling',
+            'Air Washer',
+        ],
+    },
+    {
+        section: 'PENGECEKAN AREA DALAM KABIN',
+        items: [
+            'Indikator Dashboard',
+            'Check Engine & DTC (Computer Scanning)',
+            'Kondisi Doorlock',
+            'Kondisi Power Window',
+            'Lampu Kabin',
+            'Electric Mirror/Manual Mirror',
+            'Doortrim',
+            'Handrem',
+            'Pedal Rem & Kopling',
+            'Audio dan Aksesoris (cam rear ops)',
+            'Kondisi Air Conditioner (Hembusan Blower, Temperatur)',
+            'Filter Kabin & Evap',
+            'Freeplay Steering',
+        ],
+    },
+    {
+        section: 'PENGECEKAN AREA EXTERIOR & UNDERSTEL',
+        items: [
+            'Lampu Utama & Foglamp',
+            'Lampu Sein & Hazard',
+            'Lampu Rem & Mundur',
+            'Kondisi Bukaan Pintu + Engsel',
+            'Kondisi Velg, Ban, + Cadangan',
+            'Kondisi Discbrake',
+            'Kondisi Kaki-Kaki (Tie Rod, Ball Joint, Support, Boot, dsb.)',
+            'Kondisi Fleksibel Rem',
+            'Kondisi Shock',
+        ],
+    },
+];
+
+const buildInspectionItems = () =>
+    INSPECTION_TEMPLATE.flatMap((section, sectionIndex) =>
+        section.items.map((item, itemIndex) => ({
+            section: section.section,
+            item_name: item,
+            sort_order: sectionIndex * 100 + itemIndex + 1,
+        }))
+    );
+
 // ===========================================================================
 // GET /work-orders
 // ===========================================================================
@@ -64,7 +127,10 @@ export const createWorkOrder = async (req: Request, res: Response) => {
         menginap,
         mekanik,
         complaint_log,
-        service_bundle_id
+        service_bundle_id,
+        image_url_1,
+        image_url_2,
+        image_url_3
     } = req.body;
 
     if (!layanan || (Array.isArray(layanan) && layanan.length === 0)) {
@@ -165,6 +231,9 @@ export const createWorkOrder = async (req: Request, res: Response) => {
                 estimasi_biaya: estimasi_biaya ? parseFloat(estimasi_biaya) : 0,
                 estimasi_selesai: estimasi_selesai ?? null,
                 menginap: menginap === true || menginap === 'true',
+                image_url_1: image_url_1 ?? null,
+                image_url_2: image_url_2 ?? null,
+                image_url_3: image_url_3 ?? null,
                 waktu_masuk: new Date(),
                 created_at: new Date(),
                 checklists: {
@@ -214,7 +283,7 @@ export const getWorkOrder = async (req: Request, res: Response) => {
 // ===========================================================================
 export const updateWorkOrder = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { noRangka, layanan, keluhan, estimasi_biaya, estimasi_selesai, menginap, mekanik, complaint_log, service_bundle_id } = req.body;
+    const { noRangka, layanan, keluhan, estimasi_biaya, estimasi_selesai, menginap, mekanik, complaint_log, service_bundle_id, image_url_1, image_url_2, image_url_3 } = req.body;
 
     try {
         const existing = await prisma.work_orders.findFirst({
@@ -242,7 +311,10 @@ export const updateWorkOrder = async (req: Request, res: Response) => {
                 ...(menginap !== undefined && { menginap: menginap === true || menginap === 'true' }),
                 ...(mekanik !== undefined && { mekanik }),
                 ...(complaint_log !== undefined && { complaint_log }),
-                ...(service_bundle_id !== undefined && { service_bundle_id: service_bundle_id ? Number(service_bundle_id) : null })
+                ...(service_bundle_id !== undefined && { service_bundle_id: service_bundle_id ? Number(service_bundle_id) : null }),
+                ...(image_url_1 !== undefined && { image_url_1 }),
+                ...(image_url_2 !== undefined && { image_url_2 }),
+                ...(image_url_3 !== undefined && { image_url_3 }),
             },
             include: {
                 customers: { select: { id: true, name: true, phone: true } },
@@ -361,6 +433,126 @@ export const deleteWorkOrder = async (req: Request, res: Response) => {
         });
 
         return successResponse(res, null, 'Work order berhasil dihapus');
+    } catch (e: any) {
+        return errorResponse(res, 'SERVER_ERROR', e.message, 500);
+    }
+};
+
+// ===========================================================================
+// GET /work-orders/:id/inspection
+// ===========================================================================
+export const getWorkOrderInspection = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        const wo = await prisma.work_orders.findFirst({
+            where: { id: Number(id), deleted_at: null },
+            include: {
+                customers: { select: { id: true, name: true, phone: true } },
+                vehicles: { select: { id: true, plate_number: true, type: true, brand: true, model: true, frame_number: true } },
+                inspection: { include: { items: { orderBy: { sort_order: 'asc' } } } }
+            }
+        });
+
+        if (!wo) return errorResponse(res, 'NOT_FOUND', 'Work order tidak ditemukan', 404);
+
+        let inspection = wo.inspection;
+        if (!inspection) {
+            inspection = await prisma.work_order_inspections.create({
+                data: {
+                    work_order_id: wo.id,
+                    inspected_by: wo.mekanik ?? null,
+                    items: { create: buildInspectionItems() }
+                },
+                include: { items: { orderBy: { sort_order: 'asc' } } }
+            });
+        }
+
+        return successResponse(res, { work_order: wo, inspection }, 'OK');
+    } catch (e: any) {
+        return errorResponse(res, 'SERVER_ERROR', e.message, 500);
+    }
+};
+
+// ===========================================================================
+// PUT /work-orders/:id/inspection
+// ===========================================================================
+export const updateWorkOrderInspection = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const {
+        inspection_date,
+        kilometer,
+        pengerjaan,
+        service_request_note,
+        repair_note,
+        inspected_by,
+        items = []
+    } = req.body;
+
+    const validStatuses = ['unchecked', 'baik', 'repair_replace'];
+    const invalidItem = Array.isArray(items)
+        ? items.find((item: any) => item.status && !validStatuses.includes(item.status))
+        : true;
+
+    if (invalidItem) {
+        return errorResponse(res, 'VALIDATION_ERROR', 'Status inspeksi tidak valid', 422);
+    }
+
+    try {
+        const existingWorkOrder = await prisma.work_orders.findFirst({
+            where: { id: Number(id), deleted_at: null },
+            include: { inspection: true }
+        });
+
+        if (!existingWorkOrder) return errorResponse(res, 'NOT_FOUND', 'Work order tidak ditemukan', 404);
+
+        const inspection = await prisma.$transaction(async (tx) => {
+            const baseInspection = existingWorkOrder.inspection
+                ? await tx.work_order_inspections.update({
+                    where: { id: existingWorkOrder.inspection.id },
+                    data: {
+                        ...(inspection_date !== undefined && { inspection_date: new Date(inspection_date) }),
+                        ...(kilometer !== undefined && { kilometer: kilometer ? String(kilometer) : null }),
+                        ...(pengerjaan !== undefined && { pengerjaan: pengerjaan ? String(pengerjaan) : null }),
+                        ...(service_request_note !== undefined && { service_request_note: service_request_note ? String(service_request_note) : null }),
+                        ...(repair_note !== undefined && { repair_note: repair_note ? String(repair_note) : null }),
+                        ...(inspected_by !== undefined && { inspected_by: inspected_by ? String(inspected_by) : null }),
+                    },
+                })
+                : await tx.work_order_inspections.create({
+                    data: {
+                        work_order_id: Number(id),
+                        inspection_date: inspection_date ? new Date(inspection_date) : new Date(),
+                        kilometer: kilometer ? String(kilometer) : null,
+                        pengerjaan: pengerjaan ? String(pengerjaan) : null,
+                        service_request_note: service_request_note ? String(service_request_note) : null,
+                        repair_note: repair_note ? String(repair_note) : null,
+                        inspected_by: inspected_by ? String(inspected_by) : null,
+                        items: { create: buildInspectionItems() }
+                    },
+                });
+
+            await Promise.all(items.map((item: any) => {
+                if (!item.id) return Promise.resolve();
+                return tx.work_order_inspection_items.updateMany({
+                    where: {
+                        id: Number(item.id),
+                        inspection_id: baseInspection.id,
+                    },
+                    data: {
+                        status: item.status ?? 'unchecked',
+                        note: item.note ? String(item.note) : null,
+                    },
+                });
+            }));
+
+            return tx.work_order_inspections.findUnique({
+                where: { id: baseInspection.id },
+                include: { items: { orderBy: { sort_order: 'asc' } } }
+            });
+        }, { timeout: 20000 });
+
+        return successResponse(res, inspection, 'Inspection checklist berhasil disimpan');
     } catch (e: any) {
         return errorResponse(res, 'SERVER_ERROR', e.message, 500);
     }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/authMiddleware';
+import { authenticate, authorizeAdmin } from '../middlewares/authMiddleware';
 import {
     listWorkOrders,
     createWorkOrder,
@@ -8,7 +8,9 @@ import {
     updateWorkOrderStatus,
     assignMechanic,
     deleteWorkOrder,
-    updateWorkOrderChecklist
+    updateWorkOrderChecklist,
+    getWorkOrderInspection,
+    updateWorkOrderInspection
 } from '../controllers/workOrderController';
 
 const router = Router();
@@ -21,6 +23,8 @@ router.get('/:id', getWorkOrder);
 router.put('/:id', updateWorkOrder);
 router.patch('/:id/status', updateWorkOrderStatus);
 router.patch('/:id/mechanic', assignMechanic);
+router.get('/:id/inspection', authorizeAdmin, getWorkOrderInspection);
+router.put('/:id/inspection', authorizeAdmin, updateWorkOrderInspection);
 router.patch('/:id/checklist/:checklistId', updateWorkOrderChecklist);
 router.delete('/:id', deleteWorkOrder);
 
