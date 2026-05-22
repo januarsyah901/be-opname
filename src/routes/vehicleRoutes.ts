@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/authMiddleware';
+import { authenticate, authorizeRoles } from '../middlewares/authMiddleware';
 import { deleteVehicle, updateVehicle } from '../controllers/vehicleController';
 
 const router = Router();
 
 router.use(authenticate);
-router.put('/:id', updateVehicle);
-router.delete('/:id', deleteVehicle);
+router.put('/:id', authorizeRoles('owner', 'admin', 'kasir'), updateVehicle);
+router.delete('/:id', authorizeRoles('owner', 'admin'), deleteVehicle);
 
 export default router;

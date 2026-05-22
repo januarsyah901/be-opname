@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/authMiddleware';
+import { authenticate, authorizeAdmin } from '../middlewares/authMiddleware';
 import { listOpnames, createOpname, getOpname, addOpnameItem, updateOpnameItem, closeOpname } from '../controllers/opnameController';
 
 const router = Router();
 
 router.use(authenticate);
+router.use(authorizeAdmin);
 router.get('/', listOpnames);
 router.post('/', createOpname);
 router.get('/:id', getOpname);

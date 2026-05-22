@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticate } from "../middlewares/authMiddleware";
+import { authenticate, authorizeRoles } from "../middlewares/authMiddleware";
 import {
   listNotifications,
   getWaClientStatus,
@@ -14,6 +14,7 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.use(authorizeRoles("owner", "admin", "kasir"));
 
 // Log notifikasi WA
 router.get("/wa", listNotifications);

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/authMiddleware';
+import { authenticate, authorizeAdmin } from '../middlewares/authMiddleware';
 import {
     listReminders,
     createReminder,
@@ -12,6 +12,7 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.use(authorizeAdmin);
 
 /**
  * @swagger

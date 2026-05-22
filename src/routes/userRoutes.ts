@@ -12,7 +12,7 @@ const router = Router();
 
 router.use(authenticate); // hanya require authenticate, bukan admin-only
 
-router.get("/", listUsers);
+router.get("/", authorizeAdmin, listUsers);
 router.post("/", authorizeAdmin, createUser); // hanya admin yg bisa create
 router.get("/:id", getUser);
 router.put("/:id", authorizeAdmin, updateUser); // hanya admin yg bisa update

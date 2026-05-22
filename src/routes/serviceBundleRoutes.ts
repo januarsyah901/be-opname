@@ -6,17 +6,17 @@ import {
     updateServiceBundle, 
     deleteServiceBundle 
 } from '../controllers/serviceBundleController';
-import { authenticate } from '../middlewares/authMiddleware';
+import { authenticate, authorizeAdmin, authorizeRoles } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 // Semua route di sini diproteksi oleh token
 router.use(authenticate);
 
-router.get('/', listServiceBundles);
-router.post('/', createServiceBundle);
-router.get('/:id', getServiceBundle);
-router.put('/:id', updateServiceBundle);
-router.delete('/:id', deleteServiceBundle);
+router.get('/', authorizeRoles('owner', 'admin', 'kasir'), listServiceBundles);
+router.post('/', authorizeAdmin, createServiceBundle);
+router.get('/:id', authorizeRoles('owner', 'admin', 'kasir'), getServiceBundle);
+router.put('/:id', authorizeAdmin, updateServiceBundle);
+router.delete('/:id', authorizeAdmin, deleteServiceBundle);
 
 export default router;

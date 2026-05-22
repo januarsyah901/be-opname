@@ -3,6 +3,15 @@ import bcrypt from "bcryptjs";
 import prisma from "../config/prisma";
 import { successResponse, errorResponse } from "../utils/response";
 
+const editableRoles = ["admin", "kasir", "mekanik"];
+
+function canAssignRole(actorRole: string | undefined, targetRole: string) {
+  if (!editableRoles.includes(targetRole)) return false;
+  if (actorRole === "owner") return true;
+  if (actorRole === "admin") return targetRole === "kasir" || targetRole === "mekanik";
+  return false;
+}
+
 // GET /users
 export const listUsers = async (req: Request, res: Response) => {
   try {
@@ -28,6 +37,7 @@ export const listUsers = async (req: Request, res: Response) => {
 // POST /users
 export const createUser = async (req: Request, res: Response) => {
   const { name, username, password, role, phone } = req.body;
+  const normalizedRole = String(role || "").toLowerCase();
   if (!name || !username || !password || !role) {
     return errorResponse(
       res,
@@ -37,10 +47,19 @@ export const createUser = async (req: Request, res: Response) => {
     );
   }
 
+  if (!canAssignRole(req.user?.role, normalizedRole)) {
+    return errorResponse(
+      res,
+      "FORBIDDEN",
+      "Role tersebut tidak boleh dibuat oleh akun Anda",
+      403,
+    );
+  }
+
   try {
     const password_hash = bcrypt.hashSync(password, 10);
     const data = await prisma.users.create({
-      data: { name, username, password_hash, role, phone: phone ?? null },
+      data: { name, username, password_hash, role: normalizedRole, phone: phone ?? null },
       select: { id: true, name: true, username: true, role: true, phone: true },
     });
     return successResponse(res, data, "User berhasil dibuat", 201);
@@ -83,7 +102,7 @@ export const updateUser = async (req: Request, res: Response) => {
   const updateData: any = {};
   if (name !== undefined) updateData.name = name;
   if (username !== undefined) updateData.username = username;
-  if (role !== undefined) updateData.role = role;
+  if (role !== undefined) updateData.role = String(role).toLowerCase();
   if (is_active !== undefined) updateData.is_active = is_active;
   if (phone !== undefined) updateData.phone = phone;
   if (password) updateData.password_hash = bcrypt.hashSync(password, 10);
@@ -95,6 +114,14 @@ export const updateUser = async (req: Request, res: Response) => {
     });
     if (!existing)
       return errorResponse(res, "NOT_FOUND", "User tidak ditemukan", 404);
+
+    if (existing.role === "owner" && req.user?.role !== "owner") {
+      return errorResponse(res, "FORBIDDEN", "Akun owner hanya boleh diubah oleh owner", 403);
+    }
+
+    if (updateData.role !== undefined && !canAssignRole(req.user?.role, updateData.role)) {
+      return errorResponse(res, "FORBIDDEN", "Role tersebut tidak boleh diberikan oleh akun Anda", 403);
+    }
 
     const data = await prisma.users.update({
       where: { id: Number(id) },
@@ -125,6 +152,10 @@ export const deleteUser = async (req: Request, res: Response) => {
     });
     if (!existing)
       return errorResponse(res, "NOT_FOUND", "User tidak ditemukan", 404);
+
+    if (existing.role === "owner") {
+      return errorResponse(res, "FORBIDDEN", "Akun owner tidak boleh dinonaktifkan", 403);
+    }
 
     await prisma.users.update({
       where: { id: Number(req.params.id) },

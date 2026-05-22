@@ -49,3 +49,19 @@ export const authorizeAdmin = (
   }
   next();
 };
+
+export const authorizeRoles = (...roles: string[]) => (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (!req.user || !roles.includes(req.user.role)) {
+    return errorResponse(
+      res,
+      "FORBIDDEN",
+      "Role Anda tidak memiliki akses ke resource ini",
+      403,
+    );
+  }
+  next();
+};

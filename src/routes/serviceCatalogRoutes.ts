@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authenticate, authorizeAdmin } from "../middlewares/authMiddleware";
 import { 
   getServiceCatalog, 
   createServiceCatalog, 
@@ -8,9 +9,11 @@ import {
 
 const router = Router();
 
+router.use(authenticate);
+
 router.get("/", getServiceCatalog);
-router.post("/", createServiceCatalog);
-router.put("/:id", updateServiceCatalog);
-router.delete("/:id", deleteServiceCatalog);
+router.post("/", authorizeAdmin, createServiceCatalog);
+router.put("/:id", authorizeAdmin, updateServiceCatalog);
+router.delete("/:id", authorizeAdmin, deleteServiceCatalog);
 
 export default router;

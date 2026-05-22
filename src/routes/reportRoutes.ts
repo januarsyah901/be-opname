@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/authMiddleware';
+import { authenticate, authorizeAdmin } from '../middlewares/authMiddleware';
 import { 
   revenueReport, 
   topProductsReport, 
@@ -15,6 +15,7 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.use(authorizeAdmin);
 router.get('/revenue', revenueReport);
 router.get('/top-products', topProductsReport);
 router.get('/top-services', topServicesReport);
