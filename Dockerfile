@@ -61,7 +61,7 @@ COPY . .
 # Build TypeScript to JavaScript
 RUN npm run build
 
-# Expose port (default in env is 3000)
+ENV PORT=3000
 EXPOSE 3000
 
 # Start application
