@@ -61,8 +61,8 @@ COPY . .
 # Build TypeScript to JavaScript
 RUN npm run build
 
-ENV PORT=3000
-EXPOSE 3000
+ENV PORT=80
+EXPOSE 80
 
 # Start application
 CMD [ "npm", "start" ]
