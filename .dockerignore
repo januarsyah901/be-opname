@@ -1,0 +1,9 @@
+node_modules
+dist
+.wwebjs_auth
+.git
+.idea
+.vscode
+.env
+Dockerfile
+captain-definition
