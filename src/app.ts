@@ -54,6 +54,7 @@ app.use(
 const allowedOrigins = [
   "https://auto-service-jet.vercel.app",
   "https://be-opname.vercel.app",
+  "https://hallojanu.xyz",
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:3333",
