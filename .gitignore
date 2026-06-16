@@ -13,3 +13,8 @@ dist
 doc/
 DOC/
 docs/
+
+# IDE & System Files
+.DS_Store
+.idea/
+.vscode/
