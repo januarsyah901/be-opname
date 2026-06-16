@@ -8,3 +8,8 @@ node_modules
 .wwebjs_auth/
 .wwebjs_cache/
 dist
+
+# Dokumentasi (Simpan di lokal saja, jangan di-commit ke github)
+doc/
+DOC/
+docs/
