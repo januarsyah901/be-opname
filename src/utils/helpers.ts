@@ -24,9 +24,10 @@ export const generateInvoiceNumber = (date: Date, seq: number): string => {
 };
 
 /**
- * Pagination helper
+ * Pagination helper - Default to 100000 to return all rows if not specified.
+ * This ensures client-side pagination on the frontend works correctly with full datasets.
  */
-export const getPagination = (page = 1, perPage = 20) => {
+export const getPagination = (page = 1, perPage = 100000) => {
     const from = (page - 1) * perPage;
     const to = from + perPage - 1;
     return { from, to, perPage };
