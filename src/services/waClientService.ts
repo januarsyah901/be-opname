@@ -72,6 +72,14 @@ export const initWaClient = (): void => {
 
   waClient.on("qr", async (qr) => {
     console.log("[WA] QR received, expires in 2 minutes.");
+    
+    // Cetak QR code di terminal agar bisa discan langsung
+    qrcode.toString(qr, { type: 'terminal', small: true }, (err, url) => {
+      if (!err) {
+        console.log(url);
+      }
+    });
+
     clientStatus = "qr_ready";
     lastQrExpiresAt = new Date(Date.now() + QR_TIMEOUT_MS);
     try {
