@@ -61,8 +61,5 @@ COPY . .
 # Build TypeScript to JavaScript
 RUN npm run build
 
-ENV PORT=80
-EXPOSE 80
-
 # Start application
-CMD [ "npm", "start" ]
+CMD [ "node", "dist/wa-worker.js" ]
