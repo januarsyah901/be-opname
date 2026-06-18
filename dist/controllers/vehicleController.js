@@ -38,8 +38,9 @@ const createVehicle = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     try {
         const normalizedType = type ? (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()) : 'Mobil';
+        const normalizedPlate = plate_number ? String(plate_number).toUpperCase().replace(/\s/g, '') : '';
         const data = yield prisma_1.default.vehicles.create({
-            data: { customer_id: Number(customerId), plate_number, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
+            data: { customer_id: Number(customerId), plate_number: normalizedPlate, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
         });
         return (0, response_1.successResponse)(res, data, 'Kendaraan berhasil ditambahkan', 201);
     }
@@ -60,9 +61,10 @@ const updateVehicle = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     try {
         const normalizedType = type ? (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()) : undefined;
+        const normalizedPlate = plate_number ? String(plate_number).toUpperCase().replace(/\s/g, '') : undefined;
         const data = yield prisma_1.default.vehicles.update({
             where: { id: Number(id) },
-            data: { plate_number, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
+            data: { plate_number: normalizedPlate, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
         });
         return (0, response_1.successResponse)(res, data, 'Kendaraan berhasil diupdate');
     }

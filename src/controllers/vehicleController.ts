@@ -25,8 +25,9 @@ export const createVehicle = async (req: Request, res: Response) => {
     }
     try {
         const normalizedType = type ? (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()) : 'Mobil';
+        const normalizedPlate = plate_number ? String(plate_number).toUpperCase().replace(/\s/g, '') : '';
         const data = await prisma.vehicles.create({
-            data: { customer_id: Number(customerId), plate_number, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
+            data: { customer_id: Number(customerId), plate_number: normalizedPlate, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
         });
         return successResponse(res, data, 'Kendaraan berhasil ditambahkan', 201);
     } catch (e: any) {
@@ -48,9 +49,10 @@ export const updateVehicle = async (req: Request, res: Response) => {
 
     try {
         const normalizedType = type ? (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()) : undefined;
+        const normalizedPlate = plate_number ? String(plate_number).toUpperCase().replace(/\s/g, '') : undefined;
         const data = await prisma.vehicles.update({
             where: { id: Number(id) },
-            data: { plate_number, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
+            data: { plate_number: normalizedPlate, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
         });
         return successResponse(res, data, 'Kendaraan berhasil diupdate');
     } catch (e: any) {
