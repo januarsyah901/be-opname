@@ -28,6 +28,7 @@ const vehicleMasterRoutes_1 = __importDefault(require("./routes/vehicleMasterRou
 const serviceCatalogRoutes_1 = __importDefault(require("./routes/serviceCatalogRoutes"));
 const reminderRoutes_1 = __importDefault(require("./routes/reminderRoutes"));
 const serviceBundleRoutes_1 = __importDefault(require("./routes/serviceBundleRoutes"));
+const purchaseOrderRoutes_1 = __importDefault(require("./routes/purchaseOrderRoutes"));
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {
@@ -53,6 +54,7 @@ app.use((0, helmet_1.default)({
 const allowedOrigins = [
     "https://auto-service-jet.vercel.app",
     "https://be-opname.vercel.app",
+    "https://hallojanu.xyz",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3333",
@@ -106,6 +108,7 @@ app.use("/api/v1/vehicle-masters", vehicleMasterRoutes_1.default);
 app.use("/api/v1/service-catalog", serviceCatalogRoutes_1.default);
 app.use("/api/v1/reminders", reminderRoutes_1.default);
 app.use("/api/v1/service-bundles", serviceBundleRoutes_1.default);
+app.use("/api/v1/inventory/purchase-orders", purchaseOrderRoutes_1.default);
 app.get("/api/docs.json", (req, res) => {
     res.setHeader("Content-Type", "application/json");
     res.send(swagger_1.default);

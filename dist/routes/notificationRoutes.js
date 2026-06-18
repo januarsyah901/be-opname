@@ -5,6 +5,7 @@ const authMiddleware_1 = require("../middlewares/authMiddleware");
 const notificationController_1 = require("../controllers/notificationController");
 const router = (0, express_1.Router)();
 router.use(authMiddleware_1.authenticate);
+router.use((0, authMiddleware_1.authorizeRoles)("owner", "admin", "kasir"));
 // Log notifikasi WA
 router.get("/wa", notificationController_1.listNotifications);
 router.delete("/wa", notificationController_1.clearNotifications);

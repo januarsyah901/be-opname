@@ -95,7 +95,7 @@ const updateCustomer = (req, res) => __awaiter(void 0, void 0, void 0, function*
         return (0, response_1.successResponse)(res, data, "Customer berhasil diupdate");
     }
     catch (e) {
-        return (0, response_1.errorResponse)(res, "NOT_FOUND", "Customer tidak ditemukan", 404);
+        return (0, response_1.errorResponse)(res, "SERVER_ERROR", e.message, 500);
     }
 });
 exports.updateCustomer = updateCustomer;

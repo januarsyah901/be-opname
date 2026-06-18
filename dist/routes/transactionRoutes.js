@@ -5,6 +5,7 @@ const authMiddleware_1 = require("../middlewares/authMiddleware");
 const transactionController_1 = require("../controllers/transactionController");
 const router = (0, express_1.Router)();
 router.use(authMiddleware_1.authenticate);
+router.use((0, authMiddleware_1.authorizeRoles)('owner', 'admin', 'kasir'));
 router.get('/', transactionController_1.listTransactions);
 router.post('/', transactionController_1.createTransaction);
 router.get('/:id', transactionController_1.getTransaction);

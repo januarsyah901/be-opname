@@ -6,5 +6,5 @@ const settingController_1 = require("../controllers/settingController");
 const router = (0, express_1.Router)();
 router.use(authMiddleware_1.authenticate);
 router.get('/', settingController_1.getSettings);
-router.put('/', settingController_1.updateSettings);
+router.put('/', authMiddleware_1.authorizeAdmin, settingController_1.updateSettings);
 exports.default = router;

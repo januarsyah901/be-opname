@@ -13,7 +13,12 @@ export const listOpnames = async (req: Request, res: Response) => {
             prisma.stock_opnames.findMany({
                 orderBy: { opened_at: 'desc' },
                 include: {
-                    users: { select: { name: true } }
+                    users: { select: { name: true } },
+                    stock_opname_items: {
+                        include: {
+                            spare_parts: { select: { name: true, sku: true, current_stock: true } }
+                        }
+                    }
                 },
                 skip: from,
                 take: perPage
@@ -40,15 +45,47 @@ export const createOpname = async (req: Request, res: Response) => {
             return errorResponse(res, 'OPNAME_ALREADY_OPEN', 'Masih ada sesi opname yang belum ditutup', 409);
         }
 
-        const data = await prisma.stock_opnames.create({
+        // 1. Buat Sesi Opname Baru
+        const session = await prisma.stock_opnames.create({
             data: {
                 session_name,
                 status: 'open',
                 user_id: userId,
                 opened_at: new Date()
-            },
-            include: { users: { select: { name: true } } }
+            }
         });
+
+        // 2. Ambil spare_parts aktif
+        const parts = await prisma.spare_parts.findMany({
+            where: { deleted_at: null }
+        });
+
+        // 3. Masukkan ke stock_opname_items
+        if (parts.length > 0) {
+            await prisma.stock_opname_items.createMany({
+                data: parts.map((part) => ({
+                    opname_id: session.id,
+                    spare_part_id: part.id,
+                    system_stock: part.current_stock,
+                    physical_count: part.current_stock,
+                    difference: 0
+                }))
+            });
+        }
+
+        // 4. Ambil kembali sesi lengkap dengan items dan users
+        const data = await prisma.stock_opnames.findUnique({
+            where: { id: session.id },
+            include: {
+                users: { select: { name: true } },
+                stock_opname_items: {
+                    include: {
+                        spare_parts: { select: { name: true, sku: true, current_stock: true } }
+                    }
+                }
+            }
+        });
+
         return successResponse(res, data, 'Sesi opname berhasil dibuat', 201);
     } catch (e: any) {
         return errorResponse(res, 'SERVER_ERROR', e.message, 500);

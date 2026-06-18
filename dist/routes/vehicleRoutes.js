@@ -5,5 +5,6 @@ const authMiddleware_1 = require("../middlewares/authMiddleware");
 const vehicleController_1 = require("../controllers/vehicleController");
 const router = (0, express_1.Router)();
 router.use(authMiddleware_1.authenticate);
-router.put('/:id', vehicleController_1.updateVehicle);
+router.put('/:id', (0, authMiddleware_1.authorizeRoles)('owner', 'admin', 'kasir'), vehicleController_1.updateVehicle);
+router.delete('/:id', (0, authMiddleware_1.authorizeRoles)('owner', 'admin'), vehicleController_1.deleteVehicle);
 exports.default = router;

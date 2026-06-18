@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authorizeAdmin = exports.authenticate = void 0;
+exports.authorizeRoles = exports.authorizeAdmin = exports.authenticate = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 const response_1 = require("../utils/response");
@@ -30,3 +30,10 @@ const authorizeAdmin = (req, res, next) => {
     next();
 };
 exports.authorizeAdmin = authorizeAdmin;
+const authorizeRoles = (...roles) => (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+        return (0, response_1.errorResponse)(res, "FORBIDDEN", "Role Anda tidak memiliki akses ke resource ini", 403);
+    }
+    next();
+};
+exports.authorizeRoles = authorizeRoles;

@@ -5,6 +5,7 @@ const authMiddleware_1 = require("../middlewares/authMiddleware");
 const reportController_1 = require("../controllers/reportController");
 const router = (0, express_1.Router)();
 router.use(authMiddleware_1.authenticate);
+router.use(authMiddleware_1.authorizeAdmin);
 router.get('/revenue', reportController_1.revenueReport);
 router.get('/top-products', reportController_1.topProductsReport);
 router.get('/top-services', reportController_1.topServicesReport);

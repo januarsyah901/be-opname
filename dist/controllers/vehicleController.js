@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateVehicle = exports.createVehicle = exports.listVehicles = void 0;
+exports.deleteVehicle = exports.updateVehicle = exports.createVehicle = exports.listVehicles = void 0;
 const prisma_1 = __importDefault(require("../config/prisma"));
 const response_1 = require("../utils/response");
 // GET /customers/:customerId/vehicles
@@ -37,8 +37,9 @@ const createVehicle = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         return (0, response_1.errorResponse)(res, 'VALIDATION_ERROR', 'Merek dan Model kendaraan wajib diisi', 422);
     }
     try {
+        const normalizedType = type ? (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()) : 'Mobil';
         const data = yield prisma_1.default.vehicles.create({
-            data: { customer_id: Number(customerId), plate_number, type, brand, model, year: year ? Number(year) : null, frame_number }
+            data: { customer_id: Number(customerId), plate_number, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
         });
         return (0, response_1.successResponse)(res, data, 'Kendaraan berhasil ditambahkan', 201);
     }
@@ -58,9 +59,10 @@ const updateVehicle = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         return (0, response_1.errorResponse)(res, 'VALIDATION_ERROR', 'Merek dan Model kendaraan tidak boleh kosong', 422);
     }
     try {
+        const normalizedType = type ? (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()) : undefined;
         const data = yield prisma_1.default.vehicles.update({
             where: { id: Number(id) },
-            data: { plate_number, type, brand, model, year: year ? Number(year) : null, frame_number }
+            data: { plate_number, type: normalizedType, brand, model, year: year ? Number(year) : null, frame_number }
         });
         return (0, response_1.successResponse)(res, data, 'Kendaraan berhasil diupdate');
     }
@@ -69,3 +71,31 @@ const updateVehicle = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.updateVehicle = updateVehicle;
+// DELETE /vehicles/:id
+const deleteVehicle = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const vehicleId = Number(id);
+    try {
+        const existing = yield prisma_1.default.vehicles.findUnique({
+            where: { id: vehicleId },
+            select: { id: true, plate_number: true }
+        });
+        if (!existing) {
+            return (0, response_1.errorResponse)(res, 'NOT_FOUND', 'Kendaraan tidak ditemukan', 404);
+        }
+        const [transactionCount, workOrderCount, reminderCount] = yield Promise.all([
+            prisma_1.default.transactions.count({ where: { vehicle_id: vehicleId } }),
+            prisma_1.default.work_orders.count({ where: { vehicle_id: vehicleId, deleted_at: null } }),
+            prisma_1.default.reminders.count({ where: { vehicle_id: vehicleId } }),
+        ]);
+        if (transactionCount > 0 || workOrderCount > 0 || reminderCount > 0) {
+            return (0, response_1.errorResponse)(res, 'CONFLICT', 'Kendaraan tidak bisa dihapus karena sudah memiliki transaksi, antrean, atau reminder terkait', 409);
+        }
+        yield prisma_1.default.vehicles.delete({ where: { id: vehicleId } });
+        return (0, response_1.successResponse)(res, null, 'Kendaraan berhasil dihapus');
+    }
+    catch (e) {
+        return (0, response_1.errorResponse)(res, 'SERVER_ERROR', e.message, 500);
+    }
+});
+exports.deleteVehicle = deleteVehicle;

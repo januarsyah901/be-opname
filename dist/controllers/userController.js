@@ -16,6 +16,16 @@ exports.deleteUser = exports.updateUser = exports.getUser = exports.createUser =
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma_1 = __importDefault(require("../config/prisma"));
 const response_1 = require("../utils/response");
+const editableRoles = ["admin", "kasir", "mekanik"];
+function canAssignRole(actorRole, targetRole) {
+    if (!editableRoles.includes(targetRole))
+        return false;
+    if (actorRole === "owner")
+        return true;
+    if (actorRole === "admin")
+        return targetRole === "kasir" || targetRole === "mekanik";
+    return false;
+}
 // GET /users
 const listUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -41,14 +51,19 @@ const listUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.listUsers = listUsers;
 // POST /users
 const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const { name, username, password, role, phone } = req.body;
+    const normalizedRole = String(role || "").toLowerCase();
     if (!name || !username || !password || !role) {
         return (0, response_1.errorResponse)(res, "VALIDATION_ERROR", "name, username, password, role wajib diisi", 422);
+    }
+    if (!canAssignRole((_a = req.user) === null || _a === void 0 ? void 0 : _a.role, normalizedRole)) {
+        return (0, response_1.errorResponse)(res, "FORBIDDEN", "Role tersebut tidak boleh dibuat oleh akun Anda", 403);
     }
     try {
         const password_hash = bcryptjs_1.default.hashSync(password, 10);
         const data = yield prisma_1.default.users.create({
-            data: { name, username, password_hash, role, phone: phone !== null && phone !== void 0 ? phone : null },
+            data: { name, username, password_hash, role: normalizedRole, phone: phone !== null && phone !== void 0 ? phone : null },
             select: { id: true, name: true, username: true, role: true, phone: true },
         });
         return (0, response_1.successResponse)(res, data, "User berhasil dibuat", 201);
@@ -87,6 +102,7 @@ const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.getUser = getUser;
 // PUT /users/:id
 const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     const { id } = req.params;
     const { name, username, role, password, is_active, phone } = req.body;
     const updateData = {};
@@ -95,7 +111,7 @@ const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     if (username !== undefined)
         updateData.username = username;
     if (role !== undefined)
-        updateData.role = role;
+        updateData.role = String(role).toLowerCase();
     if (is_active !== undefined)
         updateData.is_active = is_active;
     if (phone !== undefined)
@@ -109,6 +125,12 @@ const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         });
         if (!existing)
             return (0, response_1.errorResponse)(res, "NOT_FOUND", "User tidak ditemukan", 404);
+        if (existing.role === "owner" && ((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) !== "owner") {
+            return (0, response_1.errorResponse)(res, "FORBIDDEN", "Akun owner hanya boleh diubah oleh owner", 403);
+        }
+        if (updateData.role !== undefined && !canAssignRole((_b = req.user) === null || _b === void 0 ? void 0 : _b.role, updateData.role)) {
+            return (0, response_1.errorResponse)(res, "FORBIDDEN", "Role tersebut tidak boleh diberikan oleh akun Anda", 403);
+        }
         const data = yield prisma_1.default.users.update({
             where: { id: Number(id) },
             data: updateData,
@@ -139,6 +161,9 @@ const deleteUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         });
         if (!existing)
             return (0, response_1.errorResponse)(res, "NOT_FOUND", "User tidak ditemukan", 404);
+        if (existing.role === "owner") {
+            return (0, response_1.errorResponse)(res, "FORBIDDEN", "Akun owner tidak boleh dinonaktifkan", 403);
+        }
         yield prisma_1.default.users.update({
             where: { id: Number(req.params.id) },
             data: { deleted_at: new Date() },

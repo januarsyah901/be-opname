@@ -25,7 +25,12 @@ const listOpnames = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             prisma_1.default.stock_opnames.findMany({
                 orderBy: { opened_at: 'desc' },
                 include: {
-                    users: { select: { name: true } }
+                    users: { select: { name: true } },
+                    stock_opname_items: {
+                        include: {
+                            spare_parts: { select: { name: true, sku: true, current_stock: true } }
+                        }
+                    }
                 },
                 skip: from,
                 take: perPage
@@ -52,14 +57,42 @@ const createOpname = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         if (openSession) {
             return (0, response_1.errorResponse)(res, 'OPNAME_ALREADY_OPEN', 'Masih ada sesi opname yang belum ditutup', 409);
         }
-        const data = yield prisma_1.default.stock_opnames.create({
+        // 1. Buat Sesi Opname Baru
+        const session = yield prisma_1.default.stock_opnames.create({
             data: {
                 session_name,
                 status: 'open',
                 user_id: userId,
                 opened_at: new Date()
-            },
-            include: { users: { select: { name: true } } }
+            }
+        });
+        // 2. Ambil spare_parts aktif
+        const parts = yield prisma_1.default.spare_parts.findMany({
+            where: { deleted_at: null }
+        });
+        // 3. Masukkan ke stock_opname_items
+        if (parts.length > 0) {
+            yield prisma_1.default.stock_opname_items.createMany({
+                data: parts.map((part) => ({
+                    opname_id: session.id,
+                    spare_part_id: part.id,
+                    system_stock: part.current_stock,
+                    physical_count: part.current_stock,
+                    difference: 0
+                }))
+            });
+        }
+        // 4. Ambil kembali sesi lengkap dengan items dan users
+        const data = yield prisma_1.default.stock_opnames.findUnique({
+            where: { id: session.id },
+            include: {
+                users: { select: { name: true } },
+                stock_opname_items: {
+                    include: {
+                        spare_parts: { select: { name: true, sku: true, current_stock: true } }
+                    }
+                }
+            }
         });
         return (0, response_1.successResponse)(res, data, 'Sesi opname berhasil dibuat', 201);
     }
